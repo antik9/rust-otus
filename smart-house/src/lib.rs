@@ -44,23 +44,23 @@ pub struct Info {
 }
 
 impl House {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: &str) -> Self {
         Self {
-            name,
+            name: name.into(),
             rooms: HashMap::new(),
         }
     }
 
-    pub fn add_room(&mut self, name: String) -> &mut House {
-        if self.rooms.get(&name).is_some() {
+    pub fn add_room(&mut self, name: &str) -> &mut House {
+        if self.rooms.get(name).is_some() {
             return self;
         }
         self.rooms.insert(name.to_owned(), Room::new(name));
         self
     }
 
-    pub fn remove_room(&mut self, name: String) -> &mut House {
-        self.rooms.remove(&name);
+    pub fn remove_room(&mut self, name: &str) -> &mut House {
+        self.rooms.remove(name);
         self
     }
 
@@ -72,11 +72,11 @@ impl House {
         rooms
     }
 
-    pub fn get_room(&mut self, name: String) -> Option<&mut Room> {
-        self.rooms.get_mut(&name)
+    pub fn get_room(&mut self, name: &str) -> Option<&mut Room> {
+        self.rooms.get_mut(name)
     }
 
-    pub fn get_info(&self) -> Vec<Info> {
+    pub fn get_info(self) -> Vec<Info> {
         let mut info: Vec<Info> = Vec::new();
         for room in self.rooms.iter() {
             for device in room.1.devices.iter() {
@@ -92,15 +92,15 @@ impl House {
 }
 
 impl Room {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: &str) -> Self {
         Self {
-            name,
+            name: name.into(),
             devices: HashMap::new(),
         }
     }
 
-    pub fn add_device(&mut self, device: DeviceType, name: String) -> &mut Room {
-        if self.devices.get(&name).is_some() {
+    pub fn add_device(&mut self, device: DeviceType, name: &str) -> &mut Room {
+        if self.devices.get(name).is_some() {
             return self;
         }
         self.devices
@@ -108,8 +108,8 @@ impl Room {
         self
     }
 
-    pub fn remove_device(&mut self, name: String) -> &mut Room {
-        self.devices.remove(&name);
+    pub fn remove_device(&mut self, name: &str) -> &mut Room {
+        self.devices.remove(name);
         self
     }
 
@@ -121,8 +121,8 @@ impl Room {
         devices
     }
 
-    pub fn get_socket(&mut self, name: String) -> Option<&mut SmartSocket> {
-        if let Some(d) = self.devices.get_mut(&name) {
+    pub fn get_socket(&mut self, name: &str) -> Option<&mut SmartSocket> {
+        if let Some(d) = self.devices.get_mut(name) {
             match d.device {
                 DeviceType::SmartSocket(ref mut s) => return Some(s),
                 _ => return None,
@@ -131,8 +131,8 @@ impl Room {
         None
     }
 
-    pub fn get_thermometer(&mut self, name: String) -> Option<&mut Thermometer> {
-        if let Some(d) = self.devices.get_mut(&name) {
+    pub fn get_thermometer(&mut self, name: &str) -> Option<&mut Thermometer> {
+        if let Some(d) = self.devices.get_mut(name) {
             match d.device {
                 DeviceType::Thermometer(ref mut t) => return Some(t),
                 _ => return None,
@@ -143,11 +143,11 @@ impl Room {
 }
 
 impl Device {
-    pub fn new(name: String, device: DeviceType) -> Self {
+    pub fn new(name: &str, device: DeviceType) -> Self {
         Self {
-            name,
             device,
-            description: "".to_owned(),
+            name: name.into(),
+            description: "".into(),
         }
     }
 }

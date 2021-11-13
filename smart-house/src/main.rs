@@ -1,33 +1,27 @@
 pub fn main() {
-    let mut house = smart::House::new("sweet home".to_owned());
+    let mut house = smart::House::new("sweet home");
     println!("{:?}", house);
 
-    house
-        .add_room("bedroom 1".to_owned())
-        .add_room("kitchen".to_owned());
+    house.add_room("bedroom 1").add_room("kitchen");
     let rooms = house.get_rooms();
     println!("{:?}", rooms);
     println!("{:?}", house);
 
-    house
-        .add_room("bedroom 2".to_owned())
-        .remove_room("bedroom 1".to_owned());
+    house.add_room("bedroom 2").remove_room("bedroom 1");
     let rooms = house.get_rooms();
     println!("{:?}", rooms);
 
-    let bedroom = house.get_room("bedroom 2".to_owned()).unwrap();
+    let bedroom = house.get_room("bedroom 2").unwrap();
     bedroom.add_device(
         smart::DeviceType::Thermometer(smart::Thermometer::new()),
-        "thermometer on the wall".to_owned(),
+        "thermometer on the wall",
     );
     bedroom.add_device(
         smart::DeviceType::SmartSocket(smart::SmartSocket::new()),
-        "socket near the bed".to_owned(),
+        "socket near the bed",
     );
 
-    let socket = bedroom
-        .get_socket("socket near the bed".to_owned())
-        .unwrap();
+    let socket = bedroom.get_socket("socket near the bed").unwrap();
     socket.switch();
 
     for info in house.get_info() {
