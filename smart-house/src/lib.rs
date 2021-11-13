@@ -9,14 +9,7 @@ pub struct House {
 #[derive(Debug, Clone)]
 pub struct Room {
     name: String,
-    devices: HashMap<String, Device>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Device {
-    name: String,
-    description: String,
-    device: DeviceType,
+    devices: HashMap<String, DeviceType>,
 }
 
 #[derive(Debug, Clone)]
@@ -27,20 +20,38 @@ pub enum DeviceType {
 
 #[derive(Debug, Clone)]
 pub struct Thermometer {
+    name: String,
+    description: String,
     temperature: f64,
 }
 
 #[derive(Debug, Clone)]
 pub struct SmartSocket {
+    name: String,
+    description: String,
     is_on: bool,
     power: usize,
 }
 
-#[derive(Debug, Clone)]
+pub struct HouseReport {
+    report: Vec<Info>,
+}
+
 pub struct Info {
     room: String,
     device: String,
     summary_info: String,
+}
+
+pub struct AddResult {}
+pub struct RemoveResult {}
+pub struct RoomsIter {}
+pub struct DevicesIter {}
+
+trait Device {
+    fn get_name(&self) -> &str;
+    fn get_description(&self) -> &str;
+    fn summary(&self) -> String;
 }
 
 impl House {
@@ -51,43 +62,42 @@ impl House {
         }
     }
 
-    pub fn add_room(&mut self, name: &str) -> &mut House {
-        if self.rooms.get(name).is_some() {
-            return self;
+    pub fn add_room(&mut self, name: &str) -> AddResult {
+        if self.rooms.get(name).is_none() {
+            self.rooms.insert(name.to_owned(), Room::new(name));
         }
-        self.rooms.insert(name.to_owned(), Room::new(name));
-        self
+        AddResult {}
     }
 
-    pub fn remove_room(&mut self, name: &str) -> &mut House {
+    pub fn remove_room(&mut self, name: &str) -> RemoveResult {
         self.rooms.remove(name);
-        self
+        RemoveResult {}
     }
 
-    pub fn get_rooms(&self) -> Vec<&Room> {
-        let mut rooms: Vec<&Room> = Vec::new();
-        for room in self.rooms.iter() {
-            rooms.push(room.1);
-        }
-        rooms
+    pub fn get_rooms(&self) -> RoomsIter {
+        todo!()
     }
 
-    pub fn get_room(&mut self, name: &str) -> Option<&mut Room> {
+    pub fn get_room(&self, name: &str) -> Option<&Room> {
+        self.rooms.get(name)
+    }
+
+    pub fn get_mut_room(&mut self, name: &str) -> Option<&mut Room> {
         self.rooms.get_mut(name)
     }
 
-    pub fn get_info(self) -> Vec<Info> {
+    pub fn get_report(self) -> HouseReport {
         let mut info: Vec<Info> = Vec::new();
         for room in self.rooms.iter() {
             for device in room.1.devices.iter() {
                 info.push(Info {
                     room: room.1.name.to_owned(),
-                    device: device.1.name.to_owned(),
-                    summary_info: device.1.device.summary(),
+                    device: device.1.get_name().to_owned(),
+                    summary_info: device.1.summary(),
                 })
             }
         }
-        info
+        HouseReport { report: info }
     }
 }
 
@@ -99,75 +109,81 @@ impl Room {
         }
     }
 
-    pub fn add_device(&mut self, device: DeviceType, name: &str) -> &mut Room {
-        if self.devices.get(name).is_some() {
-            return self;
+    pub fn add_device(&mut self, device: DeviceType) -> AddResult {
+        if self.devices.get(device.get_name()).is_none() {
+            self.devices.insert(device.get_name().to_owned(), device);
         }
-        self.devices
-            .insert(name.to_owned(), Device::new(name, device));
-        self
+        AddResult {}
     }
 
-    pub fn remove_device(&mut self, name: &str) -> &mut Room {
+    pub fn remove_device(&mut self, name: &str) -> RemoveResult {
         self.devices.remove(name);
-        self
+        RemoveResult {}
     }
 
-    pub fn get_devices(&self) -> Vec<&Device> {
-        let mut devices: Vec<&Device> = Vec::new();
-        for device in self.devices.iter() {
-            devices.push(device.1);
-        }
-        devices
+    pub fn get_devices(&self) -> DevicesIter {
+        todo!()
     }
 
-    pub fn get_socket(&mut self, name: &str) -> Option<&mut SmartSocket> {
-        if let Some(d) = self.devices.get_mut(name) {
-            match d.device {
-                DeviceType::SmartSocket(ref mut s) => return Some(s),
-                _ => return None,
-            }
+    pub fn get_socket(&mut self, name: &str) -> Option<&SmartSocket> {
+        if let Some(DeviceType::SmartSocket(ref s)) = self.devices.get_mut(name) {
+            return Some(s);
         }
         None
     }
 
-    pub fn get_thermometer(&mut self, name: &str) -> Option<&mut Thermometer> {
-        if let Some(d) = self.devices.get_mut(name) {
-            match d.device {
-                DeviceType::Thermometer(ref mut t) => return Some(t),
-                _ => return None,
-            }
+    pub fn get_mut_socket(&mut self, name: &str) -> Option<&mut SmartSocket> {
+        if let Some(DeviceType::SmartSocket(ref mut s)) = self.devices.get_mut(name) {
+            return Some(s);
+        }
+        None
+    }
+
+    pub fn get_thermometer(&mut self, name: &str) -> Option<&Thermometer> {
+        if let Some(DeviceType::Thermometer(ref t)) = self.devices.get_mut(name) {
+            return Some(t);
+        }
+        None
+    }
+
+    pub fn get_mut_thermometer(&mut self, name: &str) -> Option<&mut Thermometer> {
+        if let Some(DeviceType::Thermometer(ref mut t)) = self.devices.get_mut(name) {
+            return Some(t);
         }
         None
     }
 }
 
-impl Device {
-    pub fn new(name: &str, device: DeviceType) -> Self {
-        Self {
-            device,
-            name: name.into(),
-            description: "".into(),
-        }
-    }
-}
-
-impl DeviceType {
-    pub fn summary(&self) -> String {
+impl Device for DeviceType {
+    fn get_name(&self) -> &str {
         match self {
-            DeviceType::Thermometer(t) => format!("{}°C", t.get_temperature()),
-            DeviceType::SmartSocket(s) => format!(
-                "{} ({}W)",
-                if s.is_on { "turned on" } else { "turned off" },
-                s.get_consumed_power(),
-            ),
+            DeviceType::Thermometer(t) => t.get_name(),
+            DeviceType::SmartSocket(s) => s.get_name(),
+        }
+    }
+
+    fn get_description(&self) -> &str {
+        match self {
+            DeviceType::Thermometer(t) => t.get_description(),
+            DeviceType::SmartSocket(s) => s.get_description(),
+        }
+    }
+
+    fn summary(&self) -> String {
+        match self {
+            DeviceType::Thermometer(t) => t.summary(),
+            DeviceType::SmartSocket(s) => s.summary(),
         }
     }
 }
 
 impl Thermometer {
-    pub fn new() -> Self {
-        Self { temperature: 0.0 }
+    pub fn new(name: &str, description: &str) -> Self {
+        Self {
+            name: name.into(),
+            description: description.into(),
+            temperature: 0.0,
+        }
     }
 
     pub fn get_temperature(&self) -> f64 {
@@ -175,15 +191,23 @@ impl Thermometer {
     }
 }
 
-impl Default for Thermometer {
-    fn default() -> Self {
-        Self::new()
+impl Device for Thermometer {
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_description(&self) -> &str {
+        &self.description
+    }
+    fn summary(&self) -> String {
+        format!("{}°C", self.get_temperature())
     }
 }
 
 impl SmartSocket {
-    pub fn new() -> Self {
+    pub fn new(name: &str, description: &str) -> Self {
         Self {
+            name: name.into(),
+            description: description.into(),
             power: 0,
             is_on: false,
         }
@@ -198,9 +222,34 @@ impl SmartSocket {
     }
 }
 
-impl Default for SmartSocket {
-    fn default() -> Self {
-        Self::new()
+impl Device for SmartSocket {
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_description(&self) -> &str {
+        &self.description
+    }
+    fn summary(&self) -> String {
+        format!(
+            "{} ({}W)",
+            if self.is_on {
+                "turned on"
+            } else {
+                "turned off"
+            },
+            self.get_consumed_power(),
+        )
+    }
+}
+
+impl HouseReport {
+    pub fn summary(&self) -> String {
+        let mut result = "".to_owned();
+        for info in self.report.iter() {
+            result += &info.summary().to_owned();
+            result += "\n";
+        }
+        result
     }
 }
 
