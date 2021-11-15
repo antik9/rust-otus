@@ -10,7 +10,7 @@ pub fn main() {
     house.remove_room("bedroom 1");
     println!("{:?}", house);
 
-    let bedroom = house.get_mut_room("bedroom 2").unwrap();
+    let bedroom = house.get_room_mut("bedroom 2").unwrap();
     bedroom.add_device(smart::DeviceType::Thermometer(smart::Thermometer::new(
         "thermometer on the wall",
         "",
@@ -20,7 +20,7 @@ pub fn main() {
         "",
     )));
 
-    let socket = bedroom.get_mut_socket("socket near the bed").unwrap();
+    let socket = bedroom.get_socket_mut("socket near the bed").unwrap();
     socket.switch();
 
     print!("{}", house.get_report().summary());

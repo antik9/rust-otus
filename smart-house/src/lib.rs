@@ -82,11 +82,11 @@ impl House {
         self.rooms.get(name)
     }
 
-    pub fn get_mut_room(&mut self, name: &str) -> Option<&mut Room> {
+    pub fn get_room_mut(&mut self, name: &str) -> Option<&mut Room> {
         self.rooms.get_mut(name)
     }
 
-    pub fn get_report(self) -> HouseReport {
+    pub fn get_report(&self) -> HouseReport {
         let mut info: Vec<Info> = Vec::new();
         for room in self.rooms.iter() {
             for device in room.1.devices.iter() {
@@ -125,28 +125,28 @@ impl Room {
         todo!()
     }
 
-    pub fn get_socket(&mut self, name: &str) -> Option<&SmartSocket> {
-        if let Some(DeviceType::SmartSocket(ref s)) = self.devices.get_mut(name) {
+    pub fn get_socket(&self, name: &str) -> Option<&SmartSocket> {
+        if let Some(DeviceType::SmartSocket(ref s)) = self.devices.get(name) {
             return Some(s);
         }
         None
     }
 
-    pub fn get_mut_socket(&mut self, name: &str) -> Option<&mut SmartSocket> {
+    pub fn get_socket_mut(&mut self, name: &str) -> Option<&mut SmartSocket> {
         if let Some(DeviceType::SmartSocket(ref mut s)) = self.devices.get_mut(name) {
             return Some(s);
         }
         None
     }
 
-    pub fn get_thermometer(&mut self, name: &str) -> Option<&Thermometer> {
-        if let Some(DeviceType::Thermometer(ref t)) = self.devices.get_mut(name) {
+    pub fn get_thermometer(&self, name: &str) -> Option<&Thermometer> {
+        if let Some(DeviceType::Thermometer(ref t)) = self.devices.get(name) {
             return Some(t);
         }
         None
     }
 
-    pub fn get_mut_thermometer(&mut self, name: &str) -> Option<&mut Thermometer> {
+    pub fn get_thermometer_mut(&mut self, name: &str) -> Option<&mut Thermometer> {
         if let Some(DeviceType::Thermometer(ref mut t)) = self.devices.get_mut(name) {
             return Some(t);
         }
