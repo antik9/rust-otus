@@ -4,7 +4,7 @@ use crate::devices::device::Device;
 use crate::devices::smartsocket::SmartSocket;
 use crate::devices::thermometer::Thermometer;
 use crate::devices::types::{DeviceType, DevicesIter};
-use crate::result::{AddResult, RemoveResult};
+use crate::errors::HouseUpdateErr;
 
 pub struct RoomsIter {}
 
@@ -26,16 +26,22 @@ impl Room {
         &self.name
     }
 
-    pub fn add_device(&mut self, device: DeviceType) -> AddResult {
+    pub fn add_device(&mut self, device: DeviceType) -> Result<(), HouseUpdateErr> {
         if self.devices.get(device.get_name()).is_none() {
             self.devices.insert(device.get_name().to_owned(), device);
+            return Ok(());
         }
-        AddResult {}
+        Err(HouseUpdateErr::DeviceAlreadyExistsError(
+            device.get_name().to_string(),
+        ))
     }
 
-    pub fn remove_device(&mut self, name: &str) -> RemoveResult {
-        self.devices.remove(name);
-        RemoveResult {}
+    pub fn remove_device(&mut self, name: &str) -> Result<(), HouseUpdateErr> {
+        if self.devices.get(name).is_some() {
+            self.devices.remove(name);
+            return Ok(());
+        }
+        Err(HouseUpdateErr::DeviceNotFoundError(name.to_string()))
     }
 
     pub fn get_devices(&self) -> DevicesIter {
@@ -80,10 +86,22 @@ mod tests {
         let mut room = Room::new("bedroom");
 
         let name = "socket near the bed";
-        room.add_device(DeviceType::SmartSocket(SmartSocket::new(name, "")));
+        room.add_device(DeviceType::SmartSocket(SmartSocket::new(name, "")))
+            .unwrap();
         assert_eq!(room.get_socket(name).is_some(), true);
 
-        room.remove_device(name);
+        room.remove_device(name).unwrap();
         assert_eq!(room.get_socket(name).is_none(), true);
+    }
+
+    #[test]
+    fn test_error_on_remove_not_existing_device() {
+        let mut room = Room::new("bedroom");
+        let name = "socket near the bed";
+
+        if let Err(HouseUpdateErr::DeviceNotFoundError(_)) = room.remove_device(name) {
+            return;
+        }
+        panic!("remove not existing device from the room")
     }
 }
