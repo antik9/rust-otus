@@ -15,7 +15,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --manifest-path ./smart-house/Cargo.toml
+          args: --manifest-path ./smart-house/Cargo.toml --all-targets --all-features -- -D warnings
 
   run_tests:
     runs-on: ubuntu-latest

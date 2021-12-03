@@ -1,12 +1,55 @@
+use std::collections::hash_map::{Iter, IterMut};
 use std::collections::HashMap;
 
 use crate::devices::device::Device;
 use crate::devices::smartsocket::SmartSocket;
 use crate::devices::thermometer::Thermometer;
-use crate::devices::types::{DeviceType, DevicesIter};
+use crate::devices::types::{DeviceType, DevicesIter, DevicesIterMut};
 use crate::errors::HouseUpdateErr;
 
-pub struct RoomsIter {}
+pub struct RoomsIter<'a> {
+    base: Iter<'a, String, Room>,
+}
+
+impl<'a> RoomsIter<'a> {
+    pub fn new(rooms: &'a HashMap<String, Room>) -> Self {
+        Self { base: rooms.iter() }
+    }
+}
+
+impl<'a> Iterator for RoomsIter<'a> {
+    type Item = &'a Room;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.base.next() {
+            Some(kv) => Some(kv.1),
+            None => None,
+        }
+    }
+}
+
+pub struct RoomsIterMut<'a> {
+    base: IterMut<'a, String, Room>,
+}
+
+impl<'a> RoomsIterMut<'a> {
+    pub fn new(rooms: &'a mut HashMap<String, Room>) -> Self {
+        Self {
+            base: rooms.iter_mut(),
+        }
+    }
+}
+
+impl<'a> Iterator for RoomsIterMut<'a> {
+    type Item = &'a mut Room;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.base.next() {
+            Some(kv) => Some(kv.1),
+            None => None,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Room {
@@ -45,7 +88,11 @@ impl Room {
     }
 
     pub fn get_devices(&self) -> DevicesIter {
-        todo!()
+        DevicesIter::new(&self.devices)
+    }
+
+    pub fn get_devices_mut(&mut self) -> DevicesIterMut {
+        DevicesIterMut::new(&mut self.devices)
     }
 
     pub fn get_socket(&self, name: &str) -> Option<&SmartSocket> {
@@ -88,10 +135,10 @@ mod tests {
         let name = "socket near the bed";
         room.add_device(DeviceType::SmartSocket(SmartSocket::new(name, "")))
             .unwrap();
-        assert_eq!(room.get_socket(name).is_some(), true);
+        assert!(room.get_socket(name).is_some());
 
         room.remove_device(name).unwrap();
-        assert_eq!(room.get_socket(name).is_none(), true);
+        assert!(room.get_socket(name).is_none());
     }
 
     #[test]
@@ -103,5 +150,30 @@ mod tests {
             return;
         }
         panic!("remove not existing device from the room")
+    }
+
+    #[test]
+    fn test_iterate_all_devices() {
+        let mut room = Room::new("bedroom");
+        let socket = "socket near the bed";
+        let thermometer = "thermometer on the wall";
+
+        room.add_device(DeviceType::SmartSocket(SmartSocket::new(socket, "")))
+            .unwrap();
+        room.add_device(DeviceType::Thermometer(Thermometer::new(thermometer, "")))
+            .unwrap();
+
+        let mut has_socket = false;
+        let mut has_thermometer = false;
+        for device in room.get_devices() {
+            match device.get_name() {
+                "socket near the bed" => has_socket = true,
+                "thermometer on the wall" => has_thermometer = true,
+                _ => panic!("unexpected device in the room"),
+            }
+        }
+
+        assert!(has_socket);
+        assert!(has_thermometer);
     }
 }

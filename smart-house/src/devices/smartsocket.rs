@@ -54,10 +54,10 @@ mod tests {
     #[test]
     fn test_switch_socket() {
         let mut socket = SmartSocket::new("socket", "description");
-        assert_eq!(socket.is_on, false);
+        assert!(!socket.is_on);
         socket.switch();
-        assert_eq!(socket.is_on, true);
+        assert!(socket.is_on);
         socket.switch();
-        assert_eq!(socket.is_on, false);
+        assert!(!socket.is_on);
     }
 }
