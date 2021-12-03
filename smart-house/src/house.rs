@@ -1,7 +1,8 @@
-use crate::report::HouseReport;
-use crate::result::{AddResult, RemoveResult};
-use crate::room::{Room, RoomsIter};
 use std::collections::HashMap;
+
+use crate::errors::HouseUpdateErr;
+use crate::report::HouseReport;
+use crate::room::{Room, RoomsIter};
 
 #[derive(Debug, Clone)]
 pub struct House {
@@ -17,16 +18,20 @@ impl House {
         }
     }
 
-    pub fn add_room(&mut self, name: &str) -> AddResult {
+    pub fn add_room(&mut self, name: &str) -> Result<(), HouseUpdateErr> {
         if self.rooms.get(name).is_none() {
             self.rooms.insert(name.to_owned(), Room::new(name));
+            return Ok(());
         }
-        AddResult {}
+        Err(HouseUpdateErr::RoomAlreadyExistsError(name.to_string()))
     }
 
-    pub fn remove_room(&mut self, name: &str) -> RemoveResult {
-        self.rooms.remove(name);
-        RemoveResult {}
+    pub fn remove_room(&mut self, name: &str) -> Result<(), HouseUpdateErr> {
+        if self.rooms.get(name).is_some() {
+            self.rooms.remove(name);
+            return Ok(());
+        }
+        Err(HouseUpdateErr::RoomNotFoundError(name.to_string()))
     }
 
     pub fn get_rooms(&self) -> RoomsIter {
@@ -55,10 +60,22 @@ mod tests {
         let mut house = House::new("home");
 
         let name = "living room";
-        house.add_room(name);
+        house.add_room(name).unwrap();
         assert_eq!(house.get_room(name).is_some(), true);
 
-        house.remove_room(name);
+        house.remove_room(name).unwrap();
         assert_eq!(house.get_room(name).is_none(), true);
+    }
+
+    #[test]
+    fn test_error_on_adding_existing_room() {
+        let mut house = House::new("home");
+        let name = "living room";
+
+        house.add_room(name).unwrap();
+        if let Err(HouseUpdateErr::RoomAlreadyExistsError(_)) = house.add_room(name) {
+            return;
+        }
+        panic!("adding already existing room to the house")
     }
 }

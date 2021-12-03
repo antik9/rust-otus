@@ -1,5 +1,5 @@
 pub mod devices;
+pub mod errors;
 pub mod house;
 pub mod report;
-pub mod result;
 pub mod room;
