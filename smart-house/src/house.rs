@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::devices::device::Device;
 use crate::errors::HouseUpdateErr;
 use crate::report::{HouseReport, Info};
-use crate::room::{Room, RoomsIter, RoomsIterMut};
+use crate::room::Room;
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -36,12 +36,12 @@ impl House {
         Err(HouseUpdateErr::RoomNotFoundError(name.to_string()))
     }
 
-    pub fn get_rooms(&self) -> RoomsIter {
-        RoomsIter::new(&self.rooms)
+    pub fn get_rooms(&self) -> impl Iterator<Item = &Room> {
+        self.rooms.iter().map(|kv| kv.1)
     }
 
-    pub fn get_rooms_mut(&mut self) -> RoomsIterMut {
-        RoomsIterMut::new(&mut self.rooms)
+    pub fn get_rooms_mut(&mut self) -> impl Iterator<Item = &mut Room> {
+        self.rooms.iter_mut().map(|kv| kv.1)
     }
 
     pub fn get_room(&self, name: &str) -> Option<&Room> {

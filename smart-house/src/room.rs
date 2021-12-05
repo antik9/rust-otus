@@ -1,55 +1,10 @@
-use std::collections::hash_map::{Iter, IterMut};
 use std::collections::HashMap;
 
 use crate::devices::device::Device;
 use crate::devices::smartsocket::SmartSocket;
 use crate::devices::thermometer::Thermometer;
-use crate::devices::types::{DeviceType, DevicesIter, DevicesIterMut};
+use crate::devices::types::DeviceType;
 use crate::errors::HouseUpdateErr;
-
-pub struct RoomsIter<'a> {
-    base: Iter<'a, String, Room>,
-}
-
-impl<'a> RoomsIter<'a> {
-    pub fn new(rooms: &'a HashMap<String, Room>) -> Self {
-        Self { base: rooms.iter() }
-    }
-}
-
-impl<'a> Iterator for RoomsIter<'a> {
-    type Item = &'a Room;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.base.next() {
-            Some(kv) => Some(kv.1),
-            None => None,
-        }
-    }
-}
-
-pub struct RoomsIterMut<'a> {
-    base: IterMut<'a, String, Room>,
-}
-
-impl<'a> RoomsIterMut<'a> {
-    pub fn new(rooms: &'a mut HashMap<String, Room>) -> Self {
-        Self {
-            base: rooms.iter_mut(),
-        }
-    }
-}
-
-impl<'a> Iterator for RoomsIterMut<'a> {
-    type Item = &'a mut Room;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.base.next() {
-            Some(kv) => Some(kv.1),
-            None => None,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Room {
@@ -87,12 +42,12 @@ impl Room {
         Err(HouseUpdateErr::DeviceNotFoundError(name.to_string()))
     }
 
-    pub fn get_devices(&self) -> DevicesIter {
-        DevicesIter::new(&self.devices)
+    pub fn get_devices(&self) -> impl Iterator<Item = &DeviceType> {
+        self.devices.iter().map(|kv| kv.1)
     }
 
-    pub fn get_devices_mut(&mut self) -> DevicesIterMut {
-        DevicesIterMut::new(&mut self.devices)
+    pub fn get_devices_mut(&mut self) -> impl Iterator<Item = &mut DeviceType> {
+        self.devices.iter_mut().map(|kv| kv.1)
     }
 
     pub fn get_socket(&self, name: &str) -> Option<&SmartSocket> {
