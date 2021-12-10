@@ -44,10 +44,10 @@ impl SmartSocket {
     }
 
     fn check_connection(&self) -> ConnectResult<()> {
-        if let None = self.stream {
+        if self.stream.is_none() {
             return Err(ConnectError::Io(std::io::Error::new(
                 ErrorKind::NotConnected,
-                "no connection established",
+                format!("no connection established to {}", self.name),
             )));
         }
         Ok(())

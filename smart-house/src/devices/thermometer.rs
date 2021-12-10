@@ -40,6 +40,6 @@ mod tests {
     #[test]
     fn test_get_temperature() {
         let thermometer = Thermometer::new("t", "description");
-        assert_eq!(thermometer.get_temperature(), 0.0);
+        assert!(thermometer.get_temperature() < f64::EPSILON);
     }
 }

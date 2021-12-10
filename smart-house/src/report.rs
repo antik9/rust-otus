@@ -24,6 +24,14 @@ impl HouseReport {
 }
 
 impl Info {
+    pub fn new(room: String, device: String, summary_info: String) -> Self {
+        Self {
+            room,
+            device,
+            summary_info,
+        }
+    }
+
     pub fn summary(&self) -> String {
         format!(
             "room: {}, device: {}, summary: {}",
