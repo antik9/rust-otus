@@ -3,10 +3,8 @@ use std::collections::HashMap;
 use crate::devices::device::Device;
 use crate::devices::smartsocket::SmartSocket;
 use crate::devices::thermometer::Thermometer;
-use crate::devices::types::{DeviceType, DevicesIter};
+use crate::devices::types::DeviceType;
 use crate::errors::HouseUpdateErr;
-
-pub struct RoomsIter {}
 
 #[derive(Debug, Clone)]
 pub struct Room {
@@ -44,8 +42,12 @@ impl Room {
         Err(HouseUpdateErr::DeviceNotFoundError(name.to_string()))
     }
 
-    pub fn get_devices(&self) -> DevicesIter {
-        todo!()
+    pub fn get_devices(&self) -> impl Iterator<Item = &DeviceType> {
+        self.devices.iter().map(|kv| kv.1)
+    }
+
+    pub fn get_devices_mut(&mut self) -> impl Iterator<Item = &mut DeviceType> {
+        self.devices.iter_mut().map(|kv| kv.1)
     }
 
     pub fn get_socket(&self, name: &str) -> Option<&SmartSocket> {
@@ -88,10 +90,10 @@ mod tests {
         let name = "socket near the bed";
         room.add_device(DeviceType::SmartSocket(SmartSocket::new(name, "")))
             .unwrap();
-        assert_eq!(room.get_socket(name).is_some(), true);
+        assert!(room.get_socket(name).is_some());
 
         room.remove_device(name).unwrap();
-        assert_eq!(room.get_socket(name).is_none(), true);
+        assert!(room.get_socket(name).is_none());
     }
 
     #[test]
@@ -103,5 +105,30 @@ mod tests {
             return;
         }
         panic!("remove not existing device from the room")
+    }
+
+    #[test]
+    fn test_iterate_all_devices() {
+        let mut room = Room::new("bedroom");
+        let socket = "socket near the bed";
+        let thermometer = "thermometer on the wall";
+
+        room.add_device(DeviceType::SmartSocket(SmartSocket::new(socket, "")))
+            .unwrap();
+        room.add_device(DeviceType::Thermometer(Thermometer::new(thermometer, "")))
+            .unwrap();
+
+        let mut has_socket = false;
+        let mut has_thermometer = false;
+        for device in room.get_devices() {
+            match device.get_name() {
+                "socket near the bed" => has_socket = true,
+                "thermometer on the wall" => has_thermometer = true,
+                _ => panic!("unexpected device in the room"),
+            }
+        }
+
+        assert!(has_socket);
+        assert!(has_thermometer);
     }
 }

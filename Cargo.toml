@@ -1,0 +1,2 @@
+[workspace]
+members = ["fizz-buzz", "smart-house"]
