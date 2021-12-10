@@ -4,7 +4,7 @@ use crate::devices::thermometer::Thermometer;
 
 pub struct DevicesIter {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum DeviceType {
     Thermometer(Thermometer),
     SmartSocket(SmartSocket),
@@ -25,7 +25,7 @@ impl Device for DeviceType {
         }
     }
 
-    fn summary(&self) -> String {
+    fn summary(&mut self) -> String {
         match self {
             DeviceType::Thermometer(t) => t.summary(),
             DeviceType::SmartSocket(s) => s.summary(),

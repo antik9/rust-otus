@@ -8,7 +8,7 @@ use crate::errors::HouseUpdateErr;
 
 pub struct RoomsIter {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Room {
     name: String,
     devices: HashMap<String, DeviceType>,
@@ -79,19 +79,47 @@ impl Room {
 
 #[cfg(test)]
 mod tests {
+    use std::{process::Command, thread::sleep, time::Duration};
+
     use super::*;
+
+    fn run_test<T>(test: T)
+    where
+        T: FnOnce(),
+    {
+        let mut cmd = Command::new("cargo")
+            .args(vec![
+                "run",
+                "--manifest-path",
+                "../smart-socket/Cargo.toml",
+                "--example",
+                "smart_socket_tcp",
+                "--",
+                "127.0.0.1:10702",
+            ])
+            .spawn()
+            .unwrap();
+        sleep(Duration::new(2, 0));
+
+        test();
+        cmd.kill().unwrap();
+    }
 
     #[test]
     fn test_add_remove_device() {
-        let mut room = Room::new("bedroom");
+        run_test(|| {
+            let mut room = Room::new("bedroom");
 
-        let name = "socket near the bed";
-        room.add_device(DeviceType::SmartSocket(SmartSocket::new(name, "")))
+            let name = "socket near the bed";
+            room.add_device(DeviceType::SmartSocket(
+                SmartSocket::new(name, "", "127.0.0.1:10702").unwrap(),
+            ))
             .unwrap();
-        assert_eq!(room.get_socket(name).is_some(), true);
+            assert!(room.get_socket(name).is_some());
 
-        room.remove_device(name).unwrap();
-        assert_eq!(room.get_socket(name).is_none(), true);
+            room.remove_device(name).unwrap();
+            assert!(room.get_socket(name).is_none());
+        })
     }
 
     #[test]

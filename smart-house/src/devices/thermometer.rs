@@ -1,6 +1,6 @@
 use crate::devices::device::Device;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Thermometer {
     name: String,
     description: String,
@@ -28,7 +28,7 @@ impl Device for Thermometer {
     fn get_description(&self) -> &str {
         &self.description
     }
-    fn summary(&self) -> String {
+    fn summary(&mut self) -> String {
         format!("{}°C", self.get_temperature())
     }
 }

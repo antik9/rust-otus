@@ -4,8 +4,9 @@ use crate::errors::HouseUpdateErr;
 use crate::report::HouseReport;
 use crate::room::{Room, RoomsIter};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct House {
+    #[allow(dead_code)]
     name: String,
     rooms: HashMap<String, Room>,
 }
@@ -61,10 +62,10 @@ mod tests {
 
         let name = "living room";
         house.add_room(name).unwrap();
-        assert_eq!(house.get_room(name).is_some(), true);
+        assert!(house.get_room(name).is_some());
 
         house.remove_room(name).unwrap();
-        assert_eq!(house.get_room(name).is_none(), true);
+        assert!(house.get_room(name).is_none());
     }
 
     #[test]
