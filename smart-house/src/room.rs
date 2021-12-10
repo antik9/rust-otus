@@ -112,7 +112,7 @@ mod tests {
 
             let name = "socket near the bed";
             room.add_device(DeviceType::SmartSocket(
-                SmartSocket::new(name, "", "127.0.0.1:10702").unwrap(),
+                SmartSocket::new(name, ""),
             ))
             .unwrap();
             assert!(room.get_socket(name).is_some());

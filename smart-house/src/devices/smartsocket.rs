@@ -1,4 +1,4 @@
-use std::io::{self, Read, Write};
+use std::io::{self, ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::str;
 
@@ -20,7 +20,7 @@ pub enum ConnectError {
 pub struct SmartSocket {
     name: String,
     description: String,
-    stream: TcpStream,
+    stream: Option<TcpStream>,
 }
 
 #[derive(Debug, Default)]
@@ -30,21 +30,38 @@ pub struct SocketState {
 }
 
 impl SmartSocket {
-    pub fn new(name: &str, description: &str, addr: &str) -> ConnectResult<SmartSocket> {
-        let stream = TcpStream::connect(addr)?;
-        Ok(Self {
+    pub fn new(name: &str, description: &str) -> SmartSocket {
+        Self {
             name: name.into(),
             description: description.into(),
-            stream,
-        })
+            stream: None,
+        }
+    }
+
+    pub fn connect(&mut self, addr: &str) -> ConnectResult<()> {
+        self.stream = Some(TcpStream::connect(addr)?);
+        Ok(())
+    }
+
+    fn check_connection(&self) -> ConnectResult<()> {
+        if let None = self.stream {
+            return Err(ConnectError::Io(std::io::Error::new(
+                ErrorKind::NotConnected,
+                "no connection established",
+            )));
+        }
+        Ok(())
     }
 
     fn get_status(&mut self) -> ConnectResult<SocketState> {
+        self.check_connection()?;
         self.stream
+            .as_ref()
+            .unwrap()
             .write_all(ProtocolCommand::Status.to_string().as_bytes())?;
 
         let mut buf = vec![0; 16];
-        let n = self.stream.read(&mut buf)?;
+        let n = self.stream.as_ref().unwrap().read(&mut buf)?;
         let s = str::from_utf8(&buf[..n]).unwrap();
         match Regex::new(r"is on \((\d+)W\)\r\n").unwrap().captures(s) {
             Some(group) => Ok(SocketState {
@@ -60,10 +77,13 @@ impl SmartSocket {
     }
 
     pub fn switch(&mut self) -> ConnectResult<()> {
+        self.check_connection()?;
         self.stream
+            .as_ref()
+            .unwrap()
             .write_all(ProtocolCommand::Switch.to_string().as_bytes())?;
         let mut buf = vec![0; 4];
-        self.stream.read_exact(&mut buf)?;
+        self.stream.as_ref().unwrap().read_exact(&mut buf)?;
         Ok(())
     }
 
@@ -123,7 +143,8 @@ mod tests {
     #[test]
     fn test_switch_socket() {
         run_test(|| {
-            let mut socket = SmartSocket::new("socket", "description", "127.0.0.1:10703").unwrap();
+            let mut socket = SmartSocket::new("socket", "description");
+            socket.connect("127.0.0.1:10703").unwrap();
 
             assert!(!socket.is_on().unwrap());
             socket.switch().unwrap();
