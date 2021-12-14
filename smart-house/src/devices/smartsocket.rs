@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::io::{self, ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::str;
@@ -20,7 +21,7 @@ pub enum ConnectError {
 pub struct SmartSocket {
     name: String,
     description: String,
-    stream: Option<TcpStream>,
+    stream: RefCell<Option<TcpStream>>,
 }
 
 #[derive(Debug, Default)]
@@ -34,17 +35,17 @@ impl SmartSocket {
         Self {
             name: name.into(),
             description: description.into(),
-            stream: None,
+            stream: RefCell::new(None),
         }
     }
 
     pub fn connect(&mut self, addr: &str) -> ConnectResult<()> {
-        self.stream = Some(TcpStream::connect(addr)?);
+        *self.stream.borrow_mut() = Some(TcpStream::connect(addr)?);
         Ok(())
     }
 
     fn check_connection(&self) -> ConnectResult<()> {
-        if self.stream.is_none() {
+        if self.stream.borrow().is_none() {
             return Err(ConnectError::Io(std::io::Error::new(
                 ErrorKind::NotConnected,
                 format!("no connection established to {}", self.name),
@@ -53,15 +54,16 @@ impl SmartSocket {
         Ok(())
     }
 
-    fn get_status(&mut self) -> ConnectResult<SocketState> {
+    fn get_status(&self) -> ConnectResult<SocketState> {
         self.check_connection()?;
         self.stream
+            .borrow_mut()
             .as_ref()
             .unwrap()
             .write_all(ProtocolCommand::Status.to_string().as_bytes())?;
 
         let mut buf = vec![0; 16];
-        let n = self.stream.as_ref().unwrap().read(&mut buf)?;
+        let n = self.stream.borrow().as_ref().unwrap().read(&mut buf)?;
         let s = str::from_utf8(&buf[..n]).unwrap();
         match Regex::new(r"is on \((\d+)W\)\r\n").unwrap().captures(s) {
             Some(group) => Ok(SocketState {
@@ -72,22 +74,23 @@ impl SmartSocket {
         }
     }
 
-    pub fn is_on(&mut self) -> ConnectResult<bool> {
+    pub fn is_on(&self) -> ConnectResult<bool> {
         self.get_status().map(|res| res.is_on)
     }
 
     pub fn switch(&mut self) -> ConnectResult<()> {
         self.check_connection()?;
         self.stream
+            .borrow_mut()
             .as_ref()
             .unwrap()
             .write_all(ProtocolCommand::Switch.to_string().as_bytes())?;
         let mut buf = vec![0; 4];
-        self.stream.as_ref().unwrap().read_exact(&mut buf)?;
+        self.stream.borrow().as_ref().unwrap().read_exact(&mut buf)?;
         Ok(())
     }
 
-    pub fn get_consumed_power(&mut self) -> ConnectResult<usize> {
+    pub fn get_consumed_power(&self) -> ConnectResult<usize> {
         self.get_status().map(|res| res.power_consumption)
     }
 }
@@ -99,7 +102,7 @@ impl Device for SmartSocket {
     fn get_description(&self) -> &str {
         &self.description
     }
-    fn summary(&mut self) -> String {
+    fn summary(&self) -> String {
         format!(
             "{} ({}W)",
             if self.is_on().unwrap() {

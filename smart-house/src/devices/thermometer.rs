@@ -28,7 +28,7 @@ impl Device for Thermometer {
     fn get_description(&self) -> &str {
         &self.description
     }
-    fn summary(&mut self) -> String {
+    fn summary(&self) -> String {
         format!("{}°C", self.get_temperature())
     }
 }

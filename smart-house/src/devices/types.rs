@@ -25,7 +25,7 @@ impl Device for DeviceType {
         }
     }
 
-    fn summary(&mut self) -> String {
+    fn summary(&self) -> String {
         match self {
             DeviceType::Thermometer(t) => t.summary(),
             DeviceType::SmartSocket(s) => s.summary(),
