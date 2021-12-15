@@ -2,7 +2,9 @@ use crate::devices::device::Device;
 use crate::devices::smartsocket::SmartSocket;
 use crate::devices::thermometer::Thermometer;
 
-#[derive(Debug, Clone)]
+pub struct DevicesIter {}
+
+#[derive(Debug)]
 pub enum DeviceType {
     Thermometer(Thermometer),
     SmartSocket(SmartSocket),

@@ -6,7 +6,7 @@ use crate::devices::thermometer::Thermometer;
 use crate::devices::types::DeviceType;
 use crate::errors::HouseUpdateErr;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Room {
     name: String,
     devices: HashMap<String, DeviceType>,

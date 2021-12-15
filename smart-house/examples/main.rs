@@ -2,35 +2,34 @@ use smart::devices::smartsocket::SmartSocket;
 use smart::devices::thermometer::Thermometer;
 use smart::devices::types::DeviceType;
 use smart::house::House;
+use smart_socket::receiver::DEFAULT_ADDRESS;
 
-pub fn main() {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut house = House::new("sweet home");
     println!("{:?}", house);
 
-    house.add_room("bedroom 1").unwrap();
-    house.add_room("kitchen").unwrap();
+    house.add_room("bedroom 1")?;
+    house.add_room("kitchen")?;
     println!("{:?}", house);
 
-    house.add_room("bedroom 2").unwrap();
-    house.remove_room("bedroom 1").unwrap();
+    house.add_room("bedroom 2")?;
+    house.remove_room("bedroom 1")?;
     println!("{:?}", house);
 
     let bedroom = house.get_room_mut("bedroom 2").unwrap();
-    bedroom
-        .add_device(DeviceType::Thermometer(Thermometer::new(
-            "thermometer on the wall",
-            "",
-        )))
-        .unwrap();
-    bedroom
-        .add_device(DeviceType::SmartSocket(SmartSocket::new(
-            "socket near the bed",
-            "",
-        )))
-        .unwrap();
+    bedroom.add_device(DeviceType::Thermometer(Thermometer::new(
+        "thermometer on the wall",
+        "",
+    )))?;
+    bedroom.add_device(DeviceType::SmartSocket(SmartSocket::new(
+        "socket near the bed",
+        "",
+    )))?;
 
     let socket = bedroom.get_socket_mut("socket near the bed").unwrap();
-    socket.switch();
+    socket.connect(DEFAULT_ADDRESS)?;
+    socket.switch()?;
 
     println!("{:?}", house);
+    Ok(())
 }

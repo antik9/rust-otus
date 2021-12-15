@@ -5,9 +5,9 @@ use crate::errors::HouseUpdateErr;
 use crate::report::{HouseReport, Info};
 use crate::room::Room;
 
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
+#[derive(Debug)]
 pub struct House {
+    #[allow(dead_code)]
     name: String,
     rooms: HashMap<String, Room>,
 }
@@ -52,13 +52,14 @@ impl House {
         self.rooms.get_mut(name)
     }
 
-    pub fn get_report(&self) -> HouseReport {
+    pub fn get_report(&mut self) -> HouseReport {
         let mut report: Vec<Info> = Vec::new();
-        for room in self.get_rooms() {
-            for device in room.get_devices() {
+        for room in self.get_rooms_mut() {
+            let name = room.get_name().to_string();
+            for device in room.get_devices_mut() {
                 report.push(Info::new(
-                    room.get_name(),
-                    device.get_name(),
+                    name.clone(),
+                    device.get_name().to_string(),
                     device.summary(),
                 ));
             }
@@ -69,6 +70,10 @@ impl House {
 
 #[cfg(test)]
 mod tests {
+    use std::process::Command;
+    use std::thread::sleep;
+    use std::time::Duration;
+
     use super::*;
     use crate::devices::smartsocket::SmartSocket;
     use crate::devices::thermometer::Thermometer;
@@ -139,27 +144,53 @@ mod tests {
         assert_eq!(device.get_name(), socket);
     }
 
+    fn run_test<T>(test: T)
+    where
+        T: FnOnce(),
+    {
+        let mut cmd = Command::new("cargo")
+            .args(vec![
+                "run",
+                "--manifest-path",
+                "../smart-socket/Cargo.toml",
+                "--example",
+                "smart_socket_tcp",
+                "--",
+                "127.0.0.1:10702",
+            ])
+            .spawn()
+            .unwrap();
+        sleep(Duration::new(2, 0));
+
+        test();
+        cmd.kill().unwrap();
+    }
+
     #[test]
     fn test_get_report() {
-        let mut house = House::new("home");
-        let living_room = "living room";
-        let socket = "socket near the bed";
-        let thermometer = "thermometer on the wall";
+        run_test(|| {
+            let mut house = House::new("home");
+            let living_room = "living room";
+            let socket = "socket near the bed";
+            let thermometer = "thermometer on the wall";
 
-        house.add_room(living_room).unwrap();
-        let room = house.get_room_mut(living_room).unwrap();
+            house.add_room(living_room).unwrap();
+            let room = house.get_room_mut(living_room).unwrap();
 
-        room.add_device(DeviceType::SmartSocket(SmartSocket::new(socket, "")))
-            .unwrap();
-        room.add_device(DeviceType::Thermometer(Thermometer::new(thermometer, "")))
-            .unwrap();
+            room.add_device(DeviceType::SmartSocket(SmartSocket::new(socket, "")))
+                .unwrap();
+            room.add_device(DeviceType::Thermometer(Thermometer::new(thermometer, "")))
+                .unwrap();
 
-        room.get_socket_mut(socket).unwrap().switch();
+            let socket_ = room.get_socket_mut(socket).unwrap();
+            socket_.connect("127.0.0.1:10702").unwrap();
+            socket_.switch().unwrap();
 
-        let summary = house.get_report().summary();
-        assert!(
-            summary == "room: living room, device: socket near the bed, summary: turned on (0W)\nroom: living room, device: thermometer on the wall, summary: 0°C\n" 
-            || summary == "room: living room, device: thermometer on the wall, summary: 0°C\nroom: living room, device: socket near the bed, summary: turned on (0W)\n"
-        );
+            let summary = house.get_report().summary();
+            assert!(
+                summary == "room: living room, device: socket near the bed, summary: turned on (2W)\nroom: living room, device: thermometer on the wall, summary: 0°C\n"
+                || summary == "room: living room, device: thermometer on the wall, summary: 0°C\nroom: living room, device: socket near the bed, summary: turned on (2W)\n"
+            );
+        })
     }
 }

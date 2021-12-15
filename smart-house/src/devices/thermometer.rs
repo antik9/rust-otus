@@ -1,6 +1,6 @@
 use crate::devices::device::Device;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Thermometer {
     name: String,
     description: String,

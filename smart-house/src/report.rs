@@ -24,10 +24,10 @@ impl HouseReport {
 }
 
 impl Info {
-    pub fn new(room: &str, device: &str, summary_info: String) -> Self {
+    pub fn new(room: String, device: String, summary_info: String) -> Self {
         Self {
-            room: room.to_string(),
-            device: device.to_string(),
+            room,
+            device,
             summary_info,
         }
     }

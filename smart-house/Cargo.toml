@@ -8,3 +8,6 @@ name = "smart"
 path = "src/lib.rs"
 
 [dependencies]
+regex = "1.5.4"
+smart_socket = { path = "../smart-socket" }
+thiserror = "1.0.30"
