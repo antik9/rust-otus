@@ -52,13 +52,12 @@ impl House {
         self.rooms.get_mut(name)
     }
 
-    pub fn get_report(&mut self) -> HouseReport {
+    pub fn get_report(&self) -> HouseReport {
         let mut report: Vec<Info> = Vec::new();
-        for room in self.get_rooms_mut() {
-            let name = room.get_name().to_string();
-            for device in room.get_devices_mut() {
+        for room in self.get_rooms() {
+            for device in room.get_devices() {
                 report.push(Info::new(
-                    name.clone(),
+                    room.get_name().to_string(),
                     device.get_name().to_string(),
                     device.summary(),
                 ));
