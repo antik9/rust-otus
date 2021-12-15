@@ -86,7 +86,11 @@ impl SmartSocket {
             .unwrap()
             .write_all(ProtocolCommand::Switch.to_string().as_bytes())?;
         let mut buf = vec![0; 4];
-        self.stream.borrow().as_ref().unwrap().read_exact(&mut buf)?;
+        self.stream
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .read_exact(&mut buf)?;
         Ok(())
     }
 

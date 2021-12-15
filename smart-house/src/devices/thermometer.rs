@@ -1,10 +1,12 @@
-use crate::devices::device::Device;
+use std::rc::Rc;
+
+use crate::{devices::device::Device, receiver::Receiver};
 
 #[derive(Debug)]
 pub struct Thermometer {
     name: String,
     description: String,
-    temperature: f64,
+    receiver: Rc<Option<Receiver>>,
 }
 
 impl Thermometer {
@@ -12,12 +14,19 @@ impl Thermometer {
         Self {
             name: name.into(),
             description: description.into(),
-            temperature: 0.0,
+            receiver: Rc::new(None),
         }
     }
 
+    pub fn add_receiver(&mut self, receiver: Rc<Option<Receiver>>) {
+        self.receiver = receiver;
+    }
+
     pub fn get_temperature(&self) -> f64 {
-        self.temperature
+        if let Some(receiver) = &*self.receiver {
+            return receiver.get_data(&self.name).unwrap_or(0.0);
+        }
+        0.0
     }
 }
 
