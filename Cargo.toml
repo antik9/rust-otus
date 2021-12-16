@@ -2,5 +2,6 @@
 members = [
     "fizz-buzz",
     "smart-house",
-    "smart-socket"
+    "smart-socket",
+    "thermometer",
 ]

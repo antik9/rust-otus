@@ -9,12 +9,6 @@ use regex::Regex;
 use crate::connection::ConnectResult;
 
 #[derive(Debug)]
-pub struct Datagram {
-    pub serial: String,
-    pub temperature: f64,
-}
-
-#[derive(Debug)]
 pub struct Receiver {
     data: Arc<RwLock<HashMap<String, f64>>>,
 }
@@ -26,12 +20,13 @@ impl Receiver {
 
         let socket = UdpSocket::bind(addr)?;
         thread::spawn(move || {
-            let mut buf: Vec<u8> = Vec::with_capacity(100);
+            let mut buf: Vec<u8> = vec![0; 64];
             loop {
                 let (n, _) = socket.recv_from(&mut buf).unwrap();
                 let s = str::from_utf8(&buf[..n]).unwrap();
 
-                if let Some(group) = Regex::new(r"([\w\s]+):\t\d+").unwrap().captures(s) {
+                if let Some(group) = Regex::new(r"([\w\s]+):\t(\d+)").unwrap().captures(s) {
+                    println!("{}", group.get(1).unwrap().as_str());
                     _data.write().unwrap().insert(
                         group.get(1).unwrap().as_str().to_owned(),
                         group.get(2).unwrap().as_str().parse().unwrap(),

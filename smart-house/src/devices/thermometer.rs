@@ -44,11 +44,50 @@ impl Device for Thermometer {
 
 #[cfg(test)]
 mod tests {
+    use std::{process::Command, thread::sleep, time::Duration};
+
     use super::*;
 
     #[test]
     fn test_get_temperature() {
         let thermometer = Thermometer::new("t", "description");
         assert!(thermometer.get_temperature() < f64::EPSILON);
+    }
+
+    fn run_test<T>(test: T)
+    where
+        T: FnOnce(),
+    {
+        let mut cmd = Command::new("cargo")
+            .args(vec![
+                "run",
+                "--manifest-path",
+                "../thermometer/Cargo.toml",
+                "--example",
+                "thermometer_udp",
+                "--",
+                "127.0.0.1:11601",
+                "127.0.0.1:11701",
+                "thermometer on the wall",
+                "25",
+            ])
+            .spawn()
+            .unwrap();
+        sleep(Duration::new(2, 0));
+
+        test();
+        cmd.kill().unwrap();
+    }
+
+    #[test]
+    fn test_get_temperature_from_receiver() {
+        run_test(|| {
+            let mut thermometer = Thermometer::new("thermometer on the wall", "");
+            let receiver = Receiver::new("127.0.0.1:11701").unwrap();
+            thermometer.add_receiver(Rc::new(Some(receiver)));
+            sleep(Duration::from_millis(200));
+
+            assert!((thermometer.get_temperature() - 25.0).abs() < f64::EPSILON);
+        })
     }
 }
