@@ -1,15 +1,19 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 
+use crate::connection::ConnectResult;
 use crate::devices::device::Device;
 use crate::devices::smartsocket::SmartSocket;
 use crate::devices::thermometer::Thermometer;
 use crate::devices::types::DeviceType;
 use crate::errors::HouseUpdateErr;
+use crate::receiver::Receiver;
 
 #[derive(Debug)]
 pub struct Room {
     name: String,
     devices: HashMap<String, DeviceType>,
+    receiver: Rc<Option<Receiver>>,
 }
 
 impl Room {
@@ -17,7 +21,13 @@ impl Room {
         Self {
             name: name.into(),
             devices: HashMap::new(),
+            receiver: Rc::new(None),
         }
+    }
+
+    pub fn mount_receiver(&mut self, addr: &str) -> ConnectResult<()> {
+        self.receiver = Rc::new(Some(Receiver::new(addr)?));
+        Ok(())
     }
 
     pub fn get_name(&self) -> &str {
@@ -76,6 +86,13 @@ impl Room {
             return Some(t);
         }
         None
+    }
+
+    pub fn connect_device_to_receiver(&mut self, name: &str) {
+        let receiver = self.receiver.clone();
+        if let Some(t) = self.get_thermometer_mut(name) {
+            t.add_receiver(receiver);
+        }
     }
 }
 
