@@ -1,7 +1,9 @@
+#[derive(Debug)]
 pub struct HouseReport {
     report: Vec<Info>,
 }
 
+#[derive(Debug)]
 pub struct Info {
     room: String,
     device: String,

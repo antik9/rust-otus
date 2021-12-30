@@ -10,6 +10,7 @@ pub enum DeviceType {
     SmartSocket(SmartSocket),
 }
 
+#[async_trait::async_trait]
 impl Device for DeviceType {
     fn get_name(&self) -> &str {
         match self {
@@ -25,10 +26,10 @@ impl Device for DeviceType {
         }
     }
 
-    fn summary(&self) -> String {
+    async fn summary(&self) -> String {
         match self {
-            DeviceType::Thermometer(t) => t.summary(),
-            DeviceType::SmartSocket(s) => s.summary(),
+            DeviceType::Thermometer(t) => t.summary().await,
+            DeviceType::SmartSocket(s) => s.summary().await,
         }
     }
 }

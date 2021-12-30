@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use crate::connection::ConnectResult;
 use crate::devices::device::Device;
@@ -13,7 +13,7 @@ use crate::receiver::Receiver;
 pub struct Room {
     name: String,
     devices: HashMap<String, DeviceType>,
-    receiver: Rc<Option<Receiver>>,
+    receiver: Arc<Mutex<Option<Receiver>>>,
 }
 
 impl Room {
@@ -21,12 +21,12 @@ impl Room {
         Self {
             name: name.into(),
             devices: HashMap::new(),
-            receiver: Rc::new(None),
+            receiver: Arc::new(Mutex::new(None)),
         }
     }
 
-    pub fn mount_receiver(&mut self, addr: &str) -> ConnectResult<()> {
-        self.receiver = Rc::new(Some(Receiver::new(addr)?));
+    pub async fn mount_receiver(&mut self, addr: &str) -> ConnectResult<()> {
+        self.receiver = Arc::new(Mutex::new(Some(Receiver::new(addr).await?)));
         Ok(())
     }
 

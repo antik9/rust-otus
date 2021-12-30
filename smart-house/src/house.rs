@@ -52,14 +52,14 @@ impl House {
         self.rooms.get_mut(name)
     }
 
-    pub fn get_report(&self) -> HouseReport {
+    pub async fn get_report(&self) -> HouseReport {
         let mut report: Vec<Info> = Vec::new();
         for room in self.get_rooms() {
             for device in room.get_devices() {
                 report.push(Info::new(
                     room.get_name().to_string(),
                     device.get_name().to_string(),
-                    device.summary(),
+                    device.summary().await,
                 ));
             }
         }
@@ -159,7 +159,7 @@ mod tests {
             ])
             .spawn()
             .unwrap();
-        sleep(Duration::new(2, 0));
+        sleep(Duration::new(10, 0));
 
         test();
         cmd.kill().unwrap();
@@ -184,7 +184,7 @@ mod tests {
             ])
             .spawn()
             .unwrap();
-        sleep(Duration::new(2, 0));
+        sleep(Duration::new(5, 0));
 
         test();
         cmd.kill().unwrap();
@@ -199,27 +199,31 @@ mod tests {
                 let socket = "socket near the bed";
                 let thermometer = "thermometer on the wall";
 
-                house.add_room(living_room).unwrap();
-                let room = house.get_room_mut(living_room).unwrap();
-                room.mount_receiver("127.0.0.1:11702").unwrap();
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    house.add_room(living_room).unwrap();
+                    let room = house.get_room_mut(living_room).unwrap();
+                    room.mount_receiver("127.0.0.1:11702").await.unwrap();
 
-                room.add_device(DeviceType::SmartSocket(SmartSocket::new(socket, "")))
-                    .unwrap();
-                room.add_device(DeviceType::Thermometer(Thermometer::new(thermometer, "")))
-                    .unwrap();
-                room.connect_device_to_receiver(thermometer);
+                    room.add_device(DeviceType::SmartSocket(SmartSocket::new(socket, "")))
+                        .unwrap();
+                    room.add_device(DeviceType::Thermometer(Thermometer::new(thermometer, "")))
+                        .unwrap();
+                    room.connect_device_to_receiver(thermometer);
 
-                let socket_ = room.get_socket_mut(socket).unwrap();
-                socket_.connect("127.0.0.1:10702").unwrap();
-                socket_.switch().unwrap();
+                    let socket_ = room.get_socket_mut(socket).unwrap();
+                    socket_.connect("127.0.0.1:10702").await.unwrap();
+                    socket_.switch().await.unwrap();
 
-                sleep(Duration::from_millis(200)); // wait for udp packages
+                    sleep(Duration::from_millis(200)); // wait for udp packages
 
-                let summary = house.get_report().summary();
-                assert!(
-                summary == "room: living room, device: socket near the bed, summary: turned on (2W)\nroom: living room, device: thermometer on the wall, summary: 23°C\n"
-                || summary == "room: living room, device: thermometer on the wall, summary: 23°C\nroom: living room, device: socket near the bed, summary: turned on (2W)\n"
-            );
+                    let summary = house.get_report().await.summary();
+                    assert!(
+                        summary == "room: living room, device: socket near the bed, summary: turned on (2W)\nroom: living room, device: thermometer on the wall, summary: 23°C\n"
+                        || summary == "room: living room, device: thermometer on the wall, summary: 23°C\nroom: living room, device: socket near the bed, summary: turned on (2W)\n"
+                    );
+                });
+                rt.shutdown_background();
             })
         })
     }

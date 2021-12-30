@@ -8,6 +8,8 @@ name = "smart"
 path = "src/lib.rs"
 
 [dependencies]
+async-trait = "0.1.52"
 regex = "1.5.4"
 smart_socket = { path = "../smart-socket" }
 thiserror = "1.0.30"
+tokio = { version = "1", features = ["full"]  }
