@@ -4,7 +4,8 @@ use smart::devices::types::DeviceType;
 use smart::house::House;
 use smart_socket::receiver::DEFAULT_ADDRESS;
 
-pub fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut house = House::new("sweet home");
     println!("{:?}", house);
 
@@ -27,9 +28,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     )))?;
 
     let socket = bedroom.get_socket_mut("socket near the bed").unwrap();
-    socket.connect(DEFAULT_ADDRESS)?;
-    socket.switch()?;
+    socket.connect(DEFAULT_ADDRESS).await?;
+    socket.switch().await?;
 
-    println!("{:?}", house);
+    println!("{:?}", house.get_report().await);
     Ok(())
 }

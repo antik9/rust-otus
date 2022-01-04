@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use crate::{devices::device::Device, receiver::Receiver};
 
@@ -6,7 +6,7 @@ use crate::{devices::device::Device, receiver::Receiver};
 pub struct Thermometer {
     name: String,
     description: String,
-    receiver: Rc<Option<Receiver>>,
+    receiver: Arc<Mutex<Option<Receiver>>>,
 }
 
 impl Thermometer {
@@ -14,22 +14,23 @@ impl Thermometer {
         Self {
             name: name.into(),
             description: description.into(),
-            receiver: Rc::new(None),
+            receiver: Arc::new(Mutex::new(None)),
         }
     }
 
-    pub fn add_receiver(&mut self, receiver: Rc<Option<Receiver>>) {
+    pub fn add_receiver(&mut self, receiver: Arc<Mutex<Option<Receiver>>>) {
         self.receiver = receiver;
     }
 
     pub fn get_temperature(&self) -> f64 {
-        if let Some(receiver) = &*self.receiver {
+        if let Some(receiver) = &*self.receiver.lock().unwrap() {
             return receiver.get_data(&self.name).unwrap_or(0.0);
         }
         0.0
     }
 }
 
+#[async_trait::async_trait]
 impl Device for Thermometer {
     fn get_name(&self) -> &str {
         &self.name
@@ -37,7 +38,7 @@ impl Device for Thermometer {
     fn get_description(&self) -> &str {
         &self.description
     }
-    fn summary(&self) -> String {
+    async fn summary(&self) -> String {
         format!("{}°C", self.get_temperature())
     }
 }
@@ -73,7 +74,7 @@ mod tests {
             ])
             .spawn()
             .unwrap();
-        sleep(Duration::new(2, 0));
+        sleep(Duration::new(5, 0));
 
         test();
         cmd.kill().unwrap();
@@ -83,11 +84,15 @@ mod tests {
     fn test_get_temperature_from_receiver() {
         run_test(|| {
             let mut thermometer = Thermometer::new("thermometer on the wall", "");
-            let receiver = Receiver::new("127.0.0.1:11701").unwrap();
-            thermometer.add_receiver(Rc::new(Some(receiver)));
-            sleep(Duration::from_millis(200));
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                let receiver = Receiver::new("127.0.0.1:11701").await.unwrap();
+                thermometer.add_receiver(Arc::new(Mutex::new(Some(receiver))));
 
-            assert!((thermometer.get_temperature() - 25.0).abs() < f64::EPSILON);
+                sleep(Duration::from_millis(200));
+                assert!((thermometer.get_temperature() - 25.0).abs() < f64::EPSILON);
+            });
+            rt.shutdown_background();
         })
     }
 }
