@@ -1,3 +1,5 @@
+use smart::devices::device::{Summary, Switcher};
+use smart::devices::retriable_switcher::Retry;
 use smart::devices::smartsocket::SmartSocket;
 use smart::devices::thermometer::Thermometer;
 use smart::devices::types::DeviceType;
@@ -22,15 +24,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "thermometer on the wall",
         "",
     )))?;
+
+    /*
     bedroom.add_device(DeviceType::SmartSocket(SmartSocket::new(
         "socket near the bed",
         "",
     )))?;
+    */
 
-    let socket = bedroom.get_socket_mut("socket near the bed").unwrap();
+    let mut socket = SmartSocket::new("simple socket", "");
     socket.connect(DEFAULT_ADDRESS).await?;
-    socket.switch().await?;
 
-    println!("{:?}", house.get_report().await);
+    let mut retriable = Retry::new(Box::new(socket), 3);
+    retriable.switch().await?;
+
+    print_summary(Box::new(house)).await;
     Ok(())
+}
+
+async fn print_summary(obj: Box<dyn Summary>) {
+    print!("{}", obj.summary().await);
 }

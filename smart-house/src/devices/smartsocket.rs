@@ -1,21 +1,15 @@
-use std::io::{self, ErrorKind, Read, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::str;
 use std::sync::{Arc, Mutex};
 
 use regex::Regex;
 use smart_socket::protocol::ProtocolCommand;
-use thiserror::Error;
 
+use crate::connection::{ConnectError, ConnectResult};
 use crate::devices::device::Device;
 
-pub type ConnectResult<T> = Result<T, ConnectError>;
-
-#[derive(Debug, Error)]
-pub enum ConnectError {
-    #[error("IO error: {0}")]
-    Io(#[from] io::Error),
-}
+use super::device::{Summary, Switcher};
 
 #[derive(Debug)]
 pub struct SmartSocket {
@@ -81,11 +75,31 @@ impl SmartSocket {
         }
     }
 
+    pub async fn switch(&mut self) -> ConnectResult<()> {
+        self::Switcher::switch(self).await
+    }
+
     pub async fn is_on(&self) -> ConnectResult<bool> {
         self.get_status().await.map(|res| res.is_on)
     }
 
-    pub async fn switch(&mut self) -> ConnectResult<()> {
+    pub async fn get_consumed_power(&self) -> ConnectResult<usize> {
+        self.get_status().await.map(|res| res.power_consumption)
+    }
+}
+
+impl Device for SmartSocket {
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_description(&self) -> &str {
+        &self.description
+    }
+}
+
+#[async_trait::async_trait]
+impl Switcher for SmartSocket {
+    async fn switch(&mut self) -> ConnectResult<()> {
         self.check_connection().await?;
         self.stream
             .lock()
@@ -102,20 +116,10 @@ impl SmartSocket {
             .read_exact(&mut buf)?;
         Ok(())
     }
-
-    pub async fn get_consumed_power(&self) -> ConnectResult<usize> {
-        self.get_status().await.map(|res| res.power_consumption)
-    }
 }
 
 #[async_trait::async_trait]
-impl Device for SmartSocket {
-    fn get_name(&self) -> &str {
-        &self.name
-    }
-    fn get_description(&self) -> &str {
-        &self.description
-    }
+impl Summary for SmartSocket {
     async fn summary(&self) -> String {
         format!(
             "{} ({}W)",
