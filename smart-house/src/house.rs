@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::devices::device::Device;
+use crate::devices::device::{Device, Summary};
 use crate::errors::HouseUpdateErr;
 use crate::report::{HouseReport, Info};
 use crate::room::Room;
@@ -51,8 +51,11 @@ impl House {
     pub fn get_room_mut(&mut self, name: &str) -> Option<&mut Room> {
         self.rooms.get_mut(name)
     }
+}
 
-    pub async fn get_report(&self) -> HouseReport {
+#[async_trait::async_trait]
+impl Summary for House {
+    async fn summary(&self) -> String {
         let mut report: Vec<Info> = Vec::new();
         for room in self.get_rooms() {
             for device in room.get_devices() {
@@ -63,7 +66,7 @@ impl House {
                 ));
             }
         }
-        HouseReport::new(report)
+        HouseReport::new(report).summary()
     }
 }
 
@@ -217,7 +220,7 @@ mod tests {
 
                     sleep(Duration::from_millis(200)); // wait for udp packages
 
-                    let summary = house.get_report().await.summary();
+                    let summary = house.summary().await;
                     assert!(
                         summary == "room: living room, device: socket near the bed, summary: turned on (2W)\nroom: living room, device: thermometer on the wall, summary: 23°C\n"
                         || summary == "room: living room, device: thermometer on the wall, summary: 23°C\nroom: living room, device: socket near the bed, summary: turned on (2W)\n"

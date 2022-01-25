@@ -2,6 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::{devices::device::Device, receiver::Receiver};
 
+use super::device::Summary;
+
 #[derive(Debug)]
 pub struct Thermometer {
     name: String,
@@ -30,7 +32,6 @@ impl Thermometer {
     }
 }
 
-#[async_trait::async_trait]
 impl Device for Thermometer {
     fn get_name(&self) -> &str {
         &self.name
@@ -38,6 +39,10 @@ impl Device for Thermometer {
     fn get_description(&self) -> &str {
         &self.description
     }
+}
+
+#[async_trait::async_trait]
+impl Summary for Thermometer {
     async fn summary(&self) -> String {
         format!("{}°C", self.get_temperature())
     }
