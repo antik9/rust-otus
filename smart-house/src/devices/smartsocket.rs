@@ -121,6 +121,7 @@ impl Switcher for SmartSocket {
 #[async_trait::async_trait]
 impl Summary for SmartSocket {
     async fn summary(&self) -> String {
+        let power = self.get_consumed_power().await.unwrap();
         format!(
             "{} ({}W)",
             if self.is_on().await.unwrap() {
@@ -128,7 +129,7 @@ impl Summary for SmartSocket {
             } else {
                 "turned off"
             },
-            self.get_consumed_power().await.unwrap(),
+            power,
         )
     }
 }
