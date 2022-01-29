@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use crate::devices::device::{Device, Summary};
 use crate::errors::HouseUpdateErr;
-use crate::report::{HouseReport, Info};
+use crate::formatter::{ItemType, PlainTextFormatter, ReportFormatter};
+use crate::report::HouseReport;
 use crate::room::Room;
 
 #[derive(Debug)]
@@ -51,22 +52,26 @@ impl House {
     pub fn get_room_mut(&mut self, name: &str) -> Option<&mut Room> {
         self.rooms.get_mut(name)
     }
+
+    pub async fn summary_fmt(&self, fmt: Box<dyn ReportFormatter + Send>) -> String {
+        let mut report: Vec<ItemType> = Vec::new();
+        for room in self.get_rooms() {
+            for device in room.get_devices() {
+                report.push(ItemType::NewObject());
+                report.push(ItemType::Str("room".into(), room.get_name().into()));
+                report.push(ItemType::Str("device".into(), device.get_name().into()));
+                report.push(ItemType::Str("summary".into(), device.summary().await));
+                report.push(ItemType::EndObject());
+            }
+        }
+        HouseReport::new(report, fmt).summary()
+    }
 }
 
 #[async_trait::async_trait]
 impl Summary for House {
     async fn summary(&self) -> String {
-        let mut report: Vec<Info> = Vec::new();
-        for room in self.get_rooms() {
-            for device in room.get_devices() {
-                report.push(Info::new(
-                    room.get_name().to_string(),
-                    device.get_name().to_string(),
-                    device.summary().await,
-                ));
-            }
-        }
-        HouseReport::new(report).summary()
+        self.summary_fmt(Box::new(PlainTextFormatter {})).await
     }
 }
 
