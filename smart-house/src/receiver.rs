@@ -15,19 +15,44 @@ pub struct Receiver {
 }
 
 impl Receiver {
+    #[allow(unreachable_code)]
     pub async fn new(addr: &str) -> ConnectResult<Receiver> {
         let data = Arc::new(RwLock::new(HashMap::new()));
         let _data = data.clone();
         let (done, cancel) = mpsc::channel();
 
         let socket = UdpSocket::bind(addr).unwrap();
+        #[cfg(feature = "no-tokio")]
+        {
+            use std::thread;
+            thread::spawn(move || {
+                let mut buf: Vec<u8> = vec![0; 64];
+                loop {
+                    let (n, _) = socket.recv_from(&mut buf).unwrap();
+                    let s = str::from_utf8(&buf[..n]).unwrap();
+
+                    if let Some(group) = Regex::new(r"([\w\s_-]+):\t(\d+)").unwrap().captures(s) {
+                        _data.write().unwrap().insert(
+                            group.get(1).unwrap().as_str().to_owned(),
+                            group.get(2).unwrap().as_str().parse().unwrap(),
+                        );
+                    }
+                    if cancel.recv_timeout(Duration::from_millis(1)).is_ok() {
+                        println!("closing receiver...");
+                        break;
+                    }
+                }
+            });
+            return Ok(Self { data, done });
+        }
+
         tokio::spawn(async move {
             let mut buf: Vec<u8> = vec![0; 64];
             loop {
                 let (n, _) = socket.recv_from(&mut buf).unwrap();
                 let s = str::from_utf8(&buf[..n]).unwrap();
 
-                if let Some(group) = Regex::new(r"([\w\s]+):\t(\d+)").unwrap().captures(s) {
+                if let Some(group) = Regex::new(r"([\w\s_-]+):\t(\d+)").unwrap().captures(s) {
                     _data.write().unwrap().insert(
                         group.get(1).unwrap().as_str().to_owned(),
                         group.get(2).unwrap().as_str().parse().unwrap(),
