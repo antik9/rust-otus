@@ -7,6 +7,10 @@ edition = "2018"
 name = "smart"
 path = "src/lib.rs"
 
+[features]
+default = []
+no-tokio = []
+
 [dependencies]
 async-trait = "0.1.52"
 regex = "1.5.4"
