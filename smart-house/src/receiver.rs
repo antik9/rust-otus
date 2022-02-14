@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::net::UdpSocket;
 use std::str;
-use std::sync::{Arc, RwLock};
+use std::sync::{mpsc, Arc, RwLock};
+use std::time::Duration;
 
 use regex::Regex;
 
@@ -10,12 +11,14 @@ use crate::connection::ConnectResult;
 #[derive(Debug)]
 pub struct Receiver {
     data: Arc<RwLock<HashMap<String, f64>>>,
+    done: mpsc::Sender<bool>,
 }
 
 impl Receiver {
     pub async fn new(addr: &str) -> ConnectResult<Receiver> {
         let data = Arc::new(RwLock::new(HashMap::new()));
         let _data = data.clone();
+        let (done, cancel) = mpsc::channel();
 
         let socket = UdpSocket::bind(addr).unwrap();
         tokio::spawn(async move {
@@ -30,12 +33,22 @@ impl Receiver {
                         group.get(2).unwrap().as_str().parse().unwrap(),
                     );
                 }
+                if cancel.recv_timeout(Duration::from_millis(1)).is_ok() {
+                    println!("closing receiver...");
+                    break;
+                }
             }
         });
-        Ok(Self { data })
+        Ok(Self { data, done })
     }
 
     pub fn get_data(&self, name: &str) -> Option<f64> {
         self.data.read().unwrap().get(name).map(|v| v.to_owned())
+    }
+}
+
+impl Drop for Receiver {
+    fn drop(&mut self) {
+        self.done.send(true).unwrap();
     }
 }

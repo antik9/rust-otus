@@ -1,68 +1,69 @@
-#[derive(Debug)]
-pub struct HouseReport {
-    report: Vec<Info>,
-}
+use crate::formatter::{ItemTypeVec, ReportFormatter};
 
-#[derive(Debug)]
-pub struct Info {
-    room: String,
-    device: String,
-    summary_info: String,
+pub struct HouseReport {
+    report: ItemTypeVec,
+    fmt: Box<dyn ReportFormatter>,
 }
 
 impl HouseReport {
-    pub fn new(report: Vec<Info>) -> Self {
-        Self { report }
+    pub fn new(report: ItemTypeVec, fmt: Box<dyn ReportFormatter>) -> Self {
+        Self { report, fmt }
     }
 
     pub fn summary(&self) -> String {
-        let mut result = "".to_owned();
-        for info in self.report.iter() {
-            result += &info.summary().to_owned();
-            result += "\n";
-        }
-        result
-    }
-}
-
-impl Info {
-    pub fn new(room: String, device: String, summary_info: String) -> Self {
-        Self {
-            room,
-            device,
-            summary_info,
-        }
-    }
-
-    pub fn summary(&self) -> String {
-        format!(
-            "room: {}, device: {}, summary: {}",
-            self.room, self.device, self.summary_info
-        )
+        self.fmt.format(&self.report)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::formatter::{ItemType, JsonFormatter, PlainTextFormatter};
+
     use super::*;
 
     #[test]
-    fn test_summary() {
-        let report = HouseReport::new(vec![
-            Info {
-                room: "bedroom".to_owned(),
-                device: "socket".to_owned(),
-                summary_info: "some info".to_owned(),
-            },
-            Info {
-                room: "kitchen".to_owned(),
-                device: "thermometer".to_owned(),
-                summary_info: "some info".to_owned(),
-            },
-        ]);
+    fn test_summary_plain_text() {
+        let report = HouseReport::new(
+            vec![
+                ItemType::NewObject(),
+                ItemType::Str("room".into(), "bedroom".into()),
+                ItemType::Str("device".into(), "socket".into()),
+                ItemType::Str("summary".into(), "some info".into()),
+                ItemType::EndObject(),
+                ItemType::NewObject(),
+                ItemType::Str("room".into(), "kitchen".into()),
+                ItemType::Str("device".into(), "thermometer".into()),
+                ItemType::Str("summary".into(), "some info".into()),
+                ItemType::EndObject(),
+            ],
+            Box::new(PlainTextFormatter {}),
+        );
         assert_eq!(
             report.summary(),
             "room: bedroom, device: socket, summary: some info\nroom: kitchen, device: thermometer, summary: some info\n",
+        );
+    }
+
+    #[test]
+    fn test_summary_json() {
+        let report = HouseReport::new(
+            vec![
+                ItemType::NewObject(),
+                ItemType::Str("room".into(), "bedroom".into()),
+                ItemType::Str("device".into(), "socket".into()),
+                ItemType::Str("summary".into(), "some info".into()),
+                ItemType::EndObject(),
+                ItemType::NewObject(),
+                ItemType::Str("room".into(), "kitchen".into()),
+                ItemType::Str("device".into(), "thermometer".into()),
+                ItemType::Str("summary".into(), "some info".into()),
+                ItemType::EndObject(),
+            ],
+            Box::new(JsonFormatter {}),
+        );
+        assert_eq!(
+            report.summary(),
+            "[{\"room\": \"bedroom\", \"device\": \"socket\", \"summary\": \"some info\"}, {\"room\": \"kitchen\", \"device\": \"thermometer\", \"summary\": \"some info\"}]",
         );
     }
 }
